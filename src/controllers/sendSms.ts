@@ -11,11 +11,15 @@ export const sendSms = async (req: express.Request, res: express.Response) => {
     }: {
       category: string;
       description: string;
-      media?: [];
+      media?: string[];
       emergency_contacts: string[];
     } = req.body;
 
-    if (!category || !description || !emergency_contacts.length) {
+    if (
+      !category ||
+      !description ||
+      (!emergency_contacts && !emergency_contacts.length)
+    ) {
       throw new Error("Some parameters are required");
     }
 
@@ -23,13 +27,18 @@ export const sendSms = async (req: express.Request, res: express.Response) => {
     const authToken = process.env.TWILIO_AUTH_TOKEN;
     const client = twilio(accountSid, authToken);
 
+    const messageBody = `Emergency Alert:
+Category: ${category}
+Description: ${description}`;
+
     // Use Promise.all to send SMS to all emergency contacts concurrently
     const messages = await Promise.all(
       emergency_contacts.map((contact) =>
         client.messages.create({
-          body: "This is a test sms emergency message",
+          body: messageBody,
           from: process.env.TWILIO_PHONE_NUMBER,
           to: contact,
+          mediaUrl: media && media.length ? media : undefined,
         })
       )
     );
